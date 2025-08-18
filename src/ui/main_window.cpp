@@ -1,206 +1,107 @@
 #include "main_window.h"
 
-MainWindow::MainWindow()
-{
-	InitSystemVariables();
-	InitWindow();
-	InitInterface();
-	InitGame();
+MainWindow::MainWindow() : m_isOpen(false) {
+    DEBUG_LOG("MainWindow constructor called");
 }
 
-void MainWindow::InitSystemVariables()
-{
-	currentStyle_	=	STYLE_APPLICATION::MODERN;
-	currentGameState_ = GameState::PLAYING;
-	currentPlayer_ =	CellState::X;
-
-	cellSize_ =		 120.0f;
-	lineThickness_ = 4.0f;
-	gridSize_ = sf::Vector2f(cellSize_ * 3, cellSize_ * 3);
-
-	gridPosition_ = sf::Vector2f(
-		(WINDOW_HEIGHT - gridSize_.y) / 2.0f - 50.0f,
-		(WINDOW_WIDTH - gridSize_.x) / 2.0f
-	);
-
-	backGroundColor_ = sf::Color(45, 45, 45);
-	gridColor_ = sf::Color(200, 200, 200);
-	xColor_ = sf::Color(255, 100, 100);
-	oColor_ = sf::Color(100, 150, 255);
-	textColor_ = sf::Color(255, 255, 255);
-
-	std::cout << "[INFO] Системные переменные инициализированы" << std::endl;
+MainWindow::~MainWindow() {
+    if (m_isOpen) {
+        close();
+    }
+    DEBUG_LOG("MainWindow destructor called");
 }
 
-void MainWindow::InitWindow()
+bool MainWindow::create(int width, int height, const std::string& title) 
 {
-	window_ = std::make_unique<sf::RenderWindow>(
-		sf::Vector2i(WINDOW_WIDTH, WINDOW_HEIGHT),
-		"Tic-Tac-Toe Game",
-		sf::Style::Close | sf::Style::Titlebar
-	);
-	
-	window_->setFramerateLimit(60);
+    DEBUG_LOG("Creating window: " + title);
 
-	std::cout << "[INFO] Окно создано: " << WINDOW_WIDTH << "x" << WINDOW_HEIGHT << std::endl;
+    m_window.create(sf::VideoMode(sf::Vector2u(width, height)), title,
+        sf::Style::Titlebar | sf::Style::Close);
+
+    if (!m_window.isOpen()) {
+        DEBUG_LOG("Failed to create window");
+        return false;
+    }
+
+    m_window.setFramerateLimit(60);
+    m_isOpen = true;
+
+    DEBUG_LOG("Window created successfully");
+    return true;
 }
 
-MainWindow& MainWindow::GetInstance()
-{
-	static MainWindow instance;
-	return instance;
+void MainWindow::close() {
+    if (m_isOpen) {
+        DEBUG_LOG("Closing window");
+        m_window.close();
+        m_isOpen = false;
+    }
 }
 
-void MainWindow::Run()
-{
-	std::cout << "[INFO] Запуск главного цикла игры..." << std::endl;
-
-	while (window_->isOpen())
-	{
-		float deltaTime = clock_.restart().asSeconds();
-
-		HandleEvent();
-		Update(deltaTime);
-		Render();
-	}
-
-	std::cout << "[INFO] Игра завершена" << std::endl;
+bool MainWindow::isOpen() const {
+    return m_window.isOpen() && m_isOpen;
 }
 
-void MainWindow::InitInterface()
+std::optional<sf::Event> MainWindow::pollEvent()
 {
-	if (!font_.openFromFile("resources/Fonts/DefaultFont/DefaultFont.ttf"))
-	{
-		std::cout << "[WARNING] Не удалось загрузить шрифт arial.ttf, используется стандартный" << std::endl;
-	}
-
-	backGroundPanel_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-	backGroundPanel_.setFillColor(backGroundColor_);
-	backGroundPanel_.setPosition(sf::Vector2f(0, 0));
-
-	statusText_.setFont(font_);
-	statusText_.setCharacterSize(32);
-	statusText_.setFillColor(sf::Color(180, 180, 180));
-	statusText_.setPosition(sf::Vector2f(50, WINDOW_HEIGHT - 100));
-	instructionText_.setString("Кликните по клетке для хода\nR - новая игра, ESC - выход");
-
-	instructionText_.setFont(font_);
-	instructionText_.setCharacterSize(16);
-	instructionText_.setFillColor(sf::Color(180, 180, 180));
-	instructionText_.setPosition(sf::Vector2f(50, WINDOW_HEIGHT - 100));
-	instructionText_.setString("Кликните по клетке для хода\nR - новая игра, ESC - выход");
-
-	std::cout << "[INFO] Интерфейс инициализирован" << std::endl;
-
+    return m_window.pollEvent();
 }
 
-void MainWindow::InitGame()
-{
-	for (int i = 0; i < GRID_SIZE; ++i)
-	{
-		for (int j = 0; j < GRID_SIZE; ++j)
-		{
-			gameGrid_[i][j] = CellState::EMPTY;
-		}
-	}
-
-	currentGameState_ = GameState::PLAYING;
-	currentPlayer_ = CellState::X;
-
-	std::cout << "[INFO] Игра инициализирована, начинает игрок X" << std::endl;
+void MainWindow::clear(const sf::Color& color) {
+    m_window.clear(color);
 }
 
-void MainWindow::DrawBackGround()
-{
+void MainWindow::display() {
+    m_window.display();
 }
 
-void MainWindow::DrawGridPanel(sf::Vector2f gridSize)
-{
+void MainWindow::draw(const sf::Drawable& drawable) {
+    m_window.draw(drawable);
 }
 
-void MainWindow::DrawGrid()
-{
+void MainWindow::drawLine(const sf::Vector2f& start, const sf::Vector2f& end,
+    const sf::Color& color, float thickness) {
+    sf::Vector2f direction = end - start;
+    float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+
+    if (length == 0) return;
+
+    sf::RectangleShape line;
+    line.setSize(sf::Vector2f(length, thickness));
+    line.setPosition(start);
+    line.setFillColor(color);
+    
+    // Вычисление угла поворота
+    float angle = std::atan2(direction.y, direction.x) * 180.0f / 3.14159265f;
+    line.setRotation(sf::degrees(angle));
+
+    m_window.draw(line);
 }
 
-void MainWindow::DrawCells()
-{
+void MainWindow::drawRectangle(const sf::Vector2f& position, const sf::Vector2f& size,
+    const sf::Color& fillColor,
+    const sf::Color& outlineColor,
+    float outlineThickness) {
+    sf::RectangleShape rectangle;
+    rectangle.setPosition(position);
+    rectangle.setSize(size);
+    rectangle.setFillColor(fillColor);
+    rectangle.setOutlineColor(outlineColor);
+    rectangle.setOutlineThickness(outlineThickness);
+
+    m_window.draw(rectangle);
 }
 
-void MainWindow::DrawUI()
-{
-}
+void MainWindow::drawCircle(const sf::Vector2f& center, float radius,
+    const sf::Color& fillColor,
+    const sf::Color& outlineColor,
+    float outlineThickness) {
+    sf::CircleShape circle;
+    circle.setRadius(radius);
+    circle.setPosition(sf::Vector2f(center.x - radius, center.y - radius));
+    circle.setFillColor(fillColor);
+    circle.setOutlineColor(outlineColor);
+    circle.setOutlineThickness(outlineThickness);
 
-void MainWindow::DrawGameStatus()
-{
-}
-
-void MainWindow::HandleCellClick(int x, int y)
-{
-}
-
-bool MainWindow::isValidMove(int x, int y) const
-{
-	return false;
-}
-
-void MainWindow::MakeMove(int x, int y)
-{
-}
-
-void MainWindow::CheckWinCondition()
-{
-}
-
-void MainWindow::ResetGame()
-{
-}
-
-void MainWindow::SwitchPlayer()
-{
-}
-
-sf::Vector2i MainWindow::GetCellFromMousePos(sf::Vector2i mousePos) const
-{
-	return sf::Vector2i();
-}
-
-sf::Vector2f MainWindow::GetCellCenter(int x, int y) const
-{
-	return sf::Vector2f();
-}
-
-sf::FloatRect MainWindow::GetCellBounds(int x, int y) const
-{
-	return sf::FloatRect();
-}
-
-void MainWindow::DrawGridPanel(sf::Vector2f gridSize)
-{
-}
-
-
-void MainWindow::HandleEvents()
-{
-	sf::Event event;
-	
-	while (window_->pollEvent(event))
-	{
-		switch (event.type)
-		{
-		case: 
-
-
-		default:
-			break;
-		}
-	}
-}
-
-void MainWindow::Update(float time)
-{
-	
-}
-
-void MainWindow::Render()
-{
+    m_window.draw(circle);
 }

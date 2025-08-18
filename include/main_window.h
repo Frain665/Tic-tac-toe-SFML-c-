@@ -1,129 +1,46 @@
-#ifndef MAIN_WINDOW_H
-#define MAIN_WINDOW_H
+#pragma once
 
+#include <SFML/Graphics.hpp>
+#include "debugger.h"
 
-#include <iostream>
-#include <memory>
-#include <vector>
-#include <array>
-
-#include "SFML/Graphics/RenderWindow.hpp"
-#include "SFML/Graphics/RectangleShape.hpp"
-#include "SFML/Graphics/Font.hpp"
-#include "SFML/Graphics/Text.hpp"
-#include "SFML/Window/Event.hpp"
-
-enum class STYLE_APPLICATION
-{
-	DARK,
-	LIGHT,
-	MODERN,
-
-	DEFAULT
-};
-
-enum class CellState
-{
-	EMPTY,
-
-	X,
-	O
-};
-
-enum class GameState
-{
-	PLAYING,
-
-	X_WON,
-	O_WON,
-
-	DRAW
-};
-
-class MainWindow
+class MainWindow 
 {
 public:
-	MainWindow(const MainWindow&) = delete;
-	MainWindow& operator=(MainWindow&) = delete;
-	MainWindow(MainWindow&&) = delete;
-	
-	static MainWindow& GetInstance();
+    MainWindow();
+    ~MainWindow();
 
-	void Run();
+    // Основные методы окна
+    bool create(int width, int height, const std::string& title);
+    void close();
+    bool isOpen() const;
+
+    // Методы обработки событий
+    std::optional<sf::Event> pollEvent();
+
+    // Методы отрисовки
+    void clear(const sf::Color& color = sf::Color::Black);
+    void display();
+
+    // Методы отрисовки примитивов
+    void draw(const sf::Drawable& drawable);
+    void drawLine(const sf::Vector2f& start, const sf::Vector2f& end,
+        const sf::Color& color = sf::Color::White, float thickness = 2.0f);
+    void drawRectangle(const sf::Vector2f& position, const sf::Vector2f& size,
+        const sf::Color& fillColor = sf::Color::Transparent,
+        const sf::Color& outlineColor = sf::Color::White,
+        float outlineThickness = 1.0f);
+    void drawCircle(const sf::Vector2f& center, float radius,
+        const sf::Color& fillColor = sf::Color::Transparent,
+        const sf::Color& outlineColor = sf::Color::White,
+        float outlineThickness = 1.0f);
+
+    // Получение размеров окна
+    sf::Vector2u getSize() const;
+
+    // Получение позиции мыши
+    sf::Vector2i getMousePosition() const;
 
 private:
-	MainWindow();
-	MainWindow() = default;
-
-	void InitSystemVariables();    // Инициализация системных переменных
-	void InitWindow();             // Создание окна
-	void InitInterface();          // Инициализация интерфейса
-	void InitGame();
-
-	// === ОСНОВНЫЕ МЕТОДЫ ИГРОВОГО ЦИКЛА === //
-	void HandleEvents();
-	void Update(float time);
-	void Render();
-	
-	// == МЕТОДЫ ОТРИСОВКИ == //
-	void DrawBackGround();
-	void DrawGridPanel(sf::Vector2f gridSize);
-	void DrawGrid();
-	void DrawCells();
-	void DrawUI();
-	void DrawGameStatus();
-
-	// == ИГРОВАЯ ЛОГИКА == //
-	void HandleCellClick(int x, int y);
-	bool isValidMove(int x, int y) const;
-	void MakeMove(int x, int y);
-	void CheckWinCondition();
-	void ResetGame();
-	void SwitchPlayer();
-
-	// == ВСПОМОГАТЕЛЬНЫЕ == //
-	sf::Vector2i GetCellFromMousePos(sf::Vector2i mousePos) const;
-	sf::Vector2f GetCellCenter(int x, int y) const;
-	sf::FloatRect GetCellBounds(int x, int y) const;
-	
-private:
-	// === ОСНОВНЫЕ ОБЪЕКТЫ === //
-	std::unique_ptr<sf::RenderWindow> window_;
-	sf::Clock clock_;
-	sf::Font font_;
-
-	// === ОСНОВНЫЕ ОБЪЕКТЫ === //
-	std::array<std::array<CellState, 3>, 3> gameGrid_;
-	GameState currentGameState_;
-	CellState currentPlayer_;
-
-	// === НАСТРОЙКИ ИГРОВОГО ПОЛЯ === //
-	sf::Vector2f gridPosition_;
-	sf::Vector2f gridSize_;
-	
-	float cellSize_;
-	float lineThickness_;
-
-	// === ВИЗУАЛЬНЫЕ ЭЛЕМЕНТЫ === //
-
-	sf::RectangleShape backGroundPanel_;
-	sf::Text statusText_;
-	sf::Text instructionText_;
-
-	// === НАСТРОЙКИ ОКНА === //
-	static constexpr int WINDOW_HEIGHT = 600;
-	static constexpr int WINDOW_WIDTH = 800;
-	static constexpr int GRID_SIZE = 3;
-
-	// === СТИЛИ И ЦВЕТА === //
-	STYLE_APPLICATION currentStyle_;
-
-	sf::Color backGroundColor_;
-	sf::Color gridColor_;
-	sf::Color xColor_;
-	sf::Color oColor_;
-	sf::Color textColor_;
-
+    sf::RenderWindow m_window;
+    bool m_isOpen;
 };
-
-#endif // !MAIN_WINDOW_H
